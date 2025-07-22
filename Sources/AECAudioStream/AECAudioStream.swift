@@ -202,7 +202,7 @@ public class AECAudioStream {
     // Create nodes and add to the graph
     var inputcd = AudioComponentDescription()
     inputcd.componentType = kAudioUnitType_Output
-    inputcd.componentSubType = kAudioUnitSubType_VoiceProcessingIO
+    inputcd.componentSubType = kAudioUnitSubType_HALOutput
     inputcd.componentManufacturer = kAudioUnitManufacturer_Apple
     
     // Add the input node to the graph
