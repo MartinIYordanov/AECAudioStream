@@ -299,7 +299,7 @@ private func kInputCallback(inRefCon:UnsafeMutableRawPointer,
   let audioMgr = unsafeBitCast(inRefCon, to: AECAudioStream.self)
   
   guard let audioUnit = audioMgr.audioUnit else {
-    return kAudio_ParamError
+    return noErr
   }
   
   let audioBuffer = AudioBuffer(mNumberChannels: 1, mDataByteSize: 0, mData: nil)
