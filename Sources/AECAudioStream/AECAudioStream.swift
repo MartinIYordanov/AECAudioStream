@@ -295,6 +295,56 @@ inputcd.componentFlagsMask = 0
     canonicalBasicStreamDescription.mBytesPerFrame = 2
     return canonicalBasicStreamDescription
   }
+
+  private func isolateAudioUnitFromSystem() throws {
+    guard let audioUnit = audioUnit else { return }
+    
+    // 1. Try to prevent the unit from taking over system audio
+    var preventSystemTakeover: UInt32 = 1
+    var status = AudioUnitSetProperty(
+        audioUnit,
+        kAudioOutputUnitProperty_HasIO,
+        kAudioUnitScope_Input,
+        1, // Input bus
+        &preventSystemTakeover,
+        UInt32(MemoryLayout.size(ofValue: preventSystemTakeover))
+    )
+    
+    // 2. Explicitly disable any system-wide effects
+    var disableSystemEffects: UInt32 = 0
+    status = AudioUnitSetProperty(
+        audioUnit,
+        kAudioUnitProperty_InPlaceProcessing,
+        kAudioUnitScope_Global,
+        0,
+        &disableSystemEffects,
+        UInt32(MemoryLayout.size(ofValue: disableSystemEffects))
+    )
+    
+    // 3. Try to set the unit to NOT be the default/primary audio unit
+    var notDefault: UInt32 = 0
+    status = AudioUnitSetProperty(
+        audioUnit,
+        kAudioOutputUnitProperty_IsRunning,
+        kAudioUnitScope_Global,
+        0,
+        &notDefault,
+        UInt32(MemoryLayout.size(ofValue: notDefault))
+    )
+    
+    // 4. Most important: Try to disable any global volume management
+    var disableVolumeControl: UInt32 = 0
+    status = AudioUnitSetProperty(
+        audioUnit,
+        kHALOutputParam_Volume,
+        kAudioUnitScope_Output,
+        0,
+        &disableVolumeControl,
+        UInt32(MemoryLayout.size(ofValue: disableVolumeControl))
+    )
+    
+    print("✅ Applied audio unit isolation configuration")
+}
   
   
   private func configureAudioUnit() throws {
@@ -355,6 +405,8 @@ inputcd.componentFlagsMask = 0
         throw AECAudioStreamError.osStatusError(status: status)
       }
     }
+        try isolateAudioUnitFromSystem()
+
   }
 }
 
