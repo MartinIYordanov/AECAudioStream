@@ -111,7 +111,7 @@ public class AECAudioStream {
                                rendererClosure: ((UnsafeMutablePointer<AudioBufferList>, UInt32) -> Void)? = nil) throws {
     self.enableRendererCallback = enableRendererCallback
     try createAUGraphForAudioUnit()
-    try configureAudioUnit()
+    // try configureAudioUnit()
     try toggleAudioCancellation(enable: enableAEC)
     try startGraph()
     try startAudioUnit()
