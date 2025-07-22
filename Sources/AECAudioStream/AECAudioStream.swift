@@ -361,7 +361,7 @@ inputcd.componentFlagsMask = 0
       throw AECAudioStreamError.osStatusError(status: status)
     }
     
-    var enableOutput: UInt32 = enableRendererCallback ? 1 : 0
+    var enableOutput: UInt32 = 0  // Always 0 to prevent system interference
     status = AudioUnitSetProperty(audioUnit, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Output, bus_0_output, &enableOutput, UInt32(MemoryLayout.size(ofValue: enableOutput)))
     guard status == noErr else {
       AudioComponentInstanceDispose(audioUnit)
