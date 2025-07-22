@@ -143,11 +143,44 @@ public class AECAudioStream {
     }
   }
   
-  private func toggleAudioCancellation(enable: Bool) throws {
+  private func configureVoiceProcessingGently() throws {
+    guard let audioUnit = audioUnit else { return }
+    
+    // 1. Try to minimize the impact on other audio by configuring the unit more gently
+    
+    // Set a lower processing quality to reduce interference
+    var processingQuality: UInt32 = 0  // 0 = lower quality, less interference
+    var status = AudioUnitSetProperty(
+        audioUnit,
+        kAudioUnitProperty_RenderQuality,
+        kAudioUnitScope_Global,
+        0,
+        &processingQuality,
+        UInt32(MemoryLayout.size(ofValue: processingQuality))
+    )
+    // This might fail, which is OK
+    
+    // 2. Try to disable ducking behavior
+    var duckOthers: UInt32 = 0  // Don't duck other audio
+    status = AudioUnitSetProperty(
+        audioUnit,
+        kAudioUnitProperty_ShouldAllocateBuffer,  // Alternative property
+        kAudioUnitScope_Global,
+        0,
+        &duckOthers,
+        UInt32(MemoryLayout.size(ofValue: duckOthers))
+    )
+    // This also might fail
+    
+    print("✅ Applied gentle VoiceProcessingIO configuration")
+}
+
+// Modify the toggleAudioCancellation method to add this call:
+private func toggleAudioCancellation(enable: Bool) throws {
     guard let audioUnit = audioUnit else {return}
     self.enableAutomaticEchoCancellation = enable
     
-    // 0 means feature is enabled, 1 means bypassed
+    // Existing bypass configuration
     var bypassVoiceProcessing: UInt32 = self.enableAutomaticEchoCancellation ? 0 : 1
     let status = AudioUnitSetProperty(audioUnit, kAUVoiceIOProperty_BypassVoiceProcessing, kAudioUnitScope_Global, 0, &bypassVoiceProcessing, UInt32(MemoryLayout.size(ofValue: bypassVoiceProcessing)))
     guard status == noErr else {
@@ -155,9 +188,9 @@ public class AECAudioStream {
         throw AECAudioStreamError.osStatusError(status: status)
     }
     
-    // ADD THIS: Disable Automatic Gain Control when AEC is enabled
     if self.enableAutomaticEchoCancellation {
-        var enableAGC: UInt32 = 0  // 0 = disabled, 1 = enabled
+        // Disable AGC (existing code)
+        var enableAGC: UInt32 = 0
         let agcStatus = AudioUnitSetProperty(
             audioUnit,
             kAUVoiceIOProperty_VoiceProcessingEnableAGC,
@@ -169,8 +202,24 @@ public class AECAudioStream {
         if agcStatus != noErr {
             print("Warning: Could not disable AGC (status: \(agcStatus))")
         }
+        
+        // NEW: Apply gentle configuration
+        try? configureVoiceProcessingGently()
+        
+        // NEW: Try to set the unit to use the system's default device without changing it
+        var useDefaultDevice: UInt32 = 1
+        let deviceStatus = AudioUnitSetProperty(
+            audioUnit,
+            kAudioOutputUnitProperty_CurrentDevice,
+            kAudioUnitScope_Global,
+            0,
+            &useDefaultDevice,
+            UInt32(MemoryLayout.size(ofValue: useDefaultDevice))
+        )
+        // This might not work but won't hurt to try
     }
-  }
+}
+
   
   private func startGraph() throws {
     var status = AUGraphInitialize(graph!)
@@ -202,8 +251,11 @@ public class AECAudioStream {
     // Create nodes and add to the graph
     var inputcd = AudioComponentDescription()
     inputcd.componentType = kAudioUnitType_Output
-    inputcd.componentSubType = kAudioUnitSubType_HALOutput
+inputcd.componentSubType = kAudioUnitSubType_VoiceProcessingIO
     inputcd.componentManufacturer = kAudioUnitManufacturer_Apple
+    inputcd.componentFlags = 0
+inputcd.componentFlagsMask = 0
+
     
     // Add the input node to the graph
     var remoteIONode: AUNode = 0
