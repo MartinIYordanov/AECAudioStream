@@ -343,7 +343,7 @@ inputcd.componentFlagsMask = 0
         UInt32(MemoryLayout.size(ofValue: disableVolumeControl))
     )
     
-    print("✅ Applied audio unit isolation configuration")
+    print("✅ Isolated AudioUnit from system audio")
 }
   
   
@@ -394,17 +394,17 @@ inputcd.componentFlagsMask = 0
       throw AECAudioStreamError.osStatusError(status: status)
     }
     
-    if enableRendererCallback {
-      // Set the input callback for the audio unit
-      var outputCallbackStruct = AURenderCallbackStruct()
-      outputCallbackStruct.inputProc = kRenderCallback
-      outputCallbackStruct.inputProcRefCon = Unmanaged.passUnretained(self).toOpaque()
-      status = AudioUnitSetProperty(audioUnit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Output, bus_0_output, &outputCallbackStruct, UInt32(MemoryLayout.size(ofValue: outputCallbackStruct)))
-      guard status == noErr else {
-        logger.error("Error in [AudioUnitSetProperty|kAudioOutputUnitProperty_SetInputCallback|kAudioUnitScope_Output]")
-        throw AECAudioStreamError.osStatusError(status: status)
-      }
-    }
+    // if enableRendererCallback {
+    //   // Set the input callback for the audio unit
+    //   var outputCallbackStruct = AURenderCallbackStruct()
+    //   outputCallbackStruct.inputProc = kRenderCallback
+    //   outputCallbackStruct.inputProcRefCon = Unmanaged.passUnretained(self).toOpaque()
+    //   status = AudioUnitSetProperty(audioUnit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Output, bus_0_output, &outputCallbackStruct, UInt32(MemoryLayout.size(ofValue: outputCallbackStruct)))
+    //   guard status == noErr else {
+    //     logger.error("Error in [AudioUnitSetProperty|kAudioOutputUnitProperty_SetInputCallback|kAudioUnitScope_Output]")
+    //     throw AECAudioStreamError.osStatusError(status: status)
+    //   }
+    // }
         try isolateAudioUnitFromSystem()
 
   }
