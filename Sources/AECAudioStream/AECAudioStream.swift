@@ -84,8 +84,8 @@ public class AECAudioStream {
         self.rendererClosure = rendererClosure
         self.capturedFrameHandler = {continuation.yield($0)}
         
-        try createAUGraphForAudioUnit()
-        try configureAudioUnit()
+        // try createAUGraphForAudioUnit()
+        // try configureAudioUnit()
         try toggleAudioCancellation(enable: enableAEC)
         try startGraph()
         try startAudioUnit()
@@ -110,7 +110,7 @@ public class AECAudioStream {
                                enableRendererCallback: Bool = false,
                                rendererClosure: ((UnsafeMutablePointer<AudioBufferList>, UInt32) -> Void)? = nil) throws {
     self.enableRendererCallback = enableRendererCallback
-    try createAUGraphForAudioUnit()
+    // try createAUGraphForAudioUnit()
     // try configureAudioUnit()
     try toggleAudioCancellation(enable: enableAEC)
     try startGraph()
