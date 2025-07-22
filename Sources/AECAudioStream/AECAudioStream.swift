@@ -146,12 +146,29 @@ public class AECAudioStream {
   private func toggleAudioCancellation(enable: Bool) throws {
     guard let audioUnit = audioUnit else {return}
     self.enableAutomaticEchoCancellation = enable
-    // 0 means feature is enabled, which includes built-in echo cancellation. When the property is set to true, the voice processing feature is bypassed and no echo cancellation is performed.
+    
+    // 0 means feature is enabled, 1 means bypassed
     var bypassVoiceProcessing: UInt32 = self.enableAutomaticEchoCancellation ? 0 : 1
     let status = AudioUnitSetProperty(audioUnit, kAUVoiceIOProperty_BypassVoiceProcessing, kAudioUnitScope_Global, 0, &bypassVoiceProcessing, UInt32(MemoryLayout.size(ofValue: bypassVoiceProcessing)))
     guard status == noErr else {
-      logger.error("Error in [AudioUnitSetProperty|kAUVoiceIOProperty_BypassVoiceProcessing|kAudioUnitScope_Global]")
-      throw AECAudioStreamError.osStatusError(status: status)
+        logger.error("Error in [AudioUnitSetProperty|kAUVoiceIOProperty_BypassVoiceProcessing|kAudioUnitScope_Global]")
+        throw AECAudioStreamError.osStatusError(status: status)
+    }
+    
+    // ADD THIS: Disable Automatic Gain Control when AEC is enabled
+    if self.enableAutomaticEchoCancellation {
+        var enableAGC: UInt32 = 0  // 0 = disabled, 1 = enabled
+        let agcStatus = AudioUnitSetProperty(
+            audioUnit,
+            kAUVoiceIOProperty_VoiceProcessingEnableAGC,
+            kAudioUnitScope_Global,
+            0,
+            &enableAGC,
+            UInt32(MemoryLayout.size(ofValue: enableAGC))
+        )
+        if agcStatus != noErr {
+            print("Warning: Could not disable AGC (status: \(agcStatus))")
+        }
     }
   }
   
@@ -313,7 +330,7 @@ private func kInputCallback(inRefCon:UnsafeMutableRawPointer,
   if let buffer = AVAudioPCMBuffer(pcmFormat: audioMgr.streamFormat, bufferListNoCopy: &bufferList), let captureAudioFrameHandler = audioMgr.capturedFrameHandler {
     captureAudioFrameHandler(buffer)
   }
-  return kAudio_ParamError
+  return noErr
 }
 
 private func kRenderCallback(inRefCon:UnsafeMutableRawPointer,
